@@ -1,5 +1,5 @@
 var util = require('util');
-var app = require('http').createServer(handler);
+var app = require('http').createServer();
 var io = require('socket.io')(app);
 var fs = require('fs');
 app.listen(3484);

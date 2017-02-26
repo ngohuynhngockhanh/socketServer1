@@ -2,10 +2,10 @@ const PORT = 3484;									//Đặt địa chỉ Port được mở ra để t�
 
 var http = require('http') 							//#include thư viện http - Tìm thêm về từ khóa http nodejs trên google nếu bạn muốn tìm hiểu thêm. Nhưng theo kinh nghiệm của mình, Javascript trong môi trường NodeJS cực kỳ rộng lớn, khi bạn bí thì nên tìm hiểu không nên ngồi đọc và cố gắng học thuộc hết cái reference (Tài liêu tham khảo) của nodejs làm gì. Vỡ não đó!
 var socketio = require('socket.io')				//#include thư viện socketio
-var io = socketio(app);
+
 var ip = require('ip');
 var app = http.createServer();					//#Khởi tạo một chương trình mạng (app)
-
+var io = socketio(app);								//#Phải khởi tạo io sau khi tạo app!
 app.listen(PORT);										// Cho socket server (chương trình mạng) lắng nghe ở port 3484
 console.log("Server nodejs chay tai dia chi: " + ip.address() + ":" + PORT)
 
@@ -51,5 +51,10 @@ io.on('connection', function(socket) {	//'connection' (1) này khác gì với '
     socket.on('atime', function(data) {
         sendTime();
         console.log(data);
+    });
+	
+	socket.on('arduino', function (data) {
+	  io.sockets.emit('arduino', { message: 'R0' });
+      console.log(data);
     });
 });

@@ -1,0 +1,50 @@
+<div class="scrollable">
+	<div class="scrollable-content">
+		<div class="list-group text-center">
+			<!-- cục giới thiệu -->
+			<div class="list-group-item list-group-item-home">
+				<h1>Socket Client Webapp <small>1.0</small>
+				</h1>
+			</div>
+			
+			<!-- Cục cảm biến mưa -->
+			<div class="list-group-item list-group-item-home">
+				<div>
+					<i class="fa fa-gamepad feature-icon text-primary"></i>
+				</div>
+				<div>
+					<h3 class="home-heading">Cảm biến mưa</h3>
+					Kết quả: {{CamBienMua}}
+				</div>
+			</div>
+			
+			<!-- Cục thay đổi trạng thái LED -->
+			<div class="list-group-item list-group-item-home">
+				<div>
+					<i class="fa fa-tachometer feature-icon  text-primary"></i>
+				</div>
+				<div>
+					<h3 class="home-heading">TRẠNG THÁI ĐÈN LED</h3>
+					<div ng-repeat="led_value in leds_status  track by $index">
+						Đèn LED thứ {{$index}} đang {{led_value ? "Bật" : "Tắt"}}. <input type="checkbox" ng-true-value="1" ng-false-value="0" ng-change="changeLED()" ng-model="leds_status[$index]" />
+					</div>
+				</div>
+			</div>
+			
+			
+			<div class="list-group-item list-group-item-home">
+				<div>
+					<i class="fa fa-tachometer feature-icon  text-primary"></i>
+				</div>
+				<div>
+					<h3 class="home-heading">Cập nhập cảm biến</h3>
+					<button class="button" ng-click="updateSensor()">
+						Nhấn vô dể cập nhập giá trị cảm biến
+					</div>
+				</div>
+			</div>
+			
+			
+		</div>
+	</div>
+</div>

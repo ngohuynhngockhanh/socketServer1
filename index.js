@@ -1,13 +1,32 @@
 const PORT = 3484;									//Đặt địa chỉ Port được mở ra để tạo ra chương trình mạng Socket Server
 
-var http = require('http') 							//#include thư viện http - Tìm thêm về từ khóa http nodejs trên google nếu bạn muốn tìm hiểu thêm. Nhưng theo kinh nghiệm của mình, Javascript trong môi trường NodeJS cực kỳ rộng lớn, khi bạn bí thì nên tìm hiểu không nên ngồi đọc và cố gắng học thuộc hết cái reference (Tài liêu tham khảo) của nodejs làm gì. Vỡ não đó!
+var http = require('http');
+var express = require('express');							//#include thư viện express - dùng để tạo server http nhanh hơn thư viện http cũ
 var socketio = require('socket.io')				//#include thư viện socketio
 
 var ip = require('ip');
-var app = http.createServer();					//#Khởi tạo một chương trình mạng (app)
-var io = socketio(app);								//#Phải khởi tạo io sau khi tạo app!
-app.listen(PORT);										// Cho socket server (chương trình mạng) lắng nghe ở port 3484
+var app = express();									//#Khởi tạo một chương trình mạng (app)
+var server = http.Server(app)
+
+var io = socketio(server);								//#Phải khởi tạo io sau khi tạo app
+
+var webapp_nsp = io.of('/webapp')				//namespace của webapp
+var esp8266_nsp = io.of('/esp8266')				//namespace của esp8266
+
+var middleware = require('socketio-wildcard')();		//Để có thể bắt toàn bộ lệnh!
+esp8266_nsp.use(middleware);									//Khi esp8266 emit bất kỳ lệnh gì lên thì sẽ bị bắt
+webapp_nsp.use(middleware);									//Khi webapp emit bất kỳ lệnh gì lên thì sẽ bị bắt
+
+server.listen(PORT);										// Cho socket server (chương trình mạng) lắng nghe ở port 3484
 console.log("Server nodejs chay tai dia chi: " + ip.address() + ":" + PORT)
+
+app.use(express.static("node_modules/mobile-angular-ui")) 			// Có thể truy cập các file trong node_modules/mobile-angular-ui từ xa
+app.use(express.static("node_modules/angular")) 							// Có thể truy cập các file trong node_modules/angular từ xa
+app.use(express.static("node_modules/angular-route")) 				// Có thể truy cập các file trong node_modules/angular-route từ xa
+app.use(express.static("node_modules/socket.io-client")) 				// Có thể truy cập các file trong node_modules/socket.io-client từ xa
+app.use(express.static("node_modules/angular-socket-io"))			// Có thể truy cập các file trong node_modules/angular-socket-io từ xa
+app.use(express.static("webapp")) 													// Dùng để lưu trữ webapp
+
 
 //giải nén chuỗi JSON thành các OBJECT
 function ParseJson(jsondata) {
@@ -18,43 +37,53 @@ function ParseJson(jsondata) {
     }
 }
 
-//Gửi dữ liệu thông qua 
-function sendTime() {
-	
-	//Đây là một chuỗi JSON
-	var json = {
-		khanh_dep_trai: "khanh dep trai", 	//kiểu chuỗi
-        ESP8266: 12,									//số nguyên
-		soPi: 3.14,										//số thực
-		time: new Date()							//Đối tượng Thời gian
-    }
-    io.sockets.emit('atime', json);
-}
 
 //Khi có mệt kết nối được tạo giữa Socket Client và Socket Server
 io.on('connection', function(socket) {	//'connection' (1) này khác gì với 'connection' (2)
-	//hàm console.log giống như hàm Serial.println trên Arduino
-    console.log("Connected"); //In ra màn hình console là đã có một Socket Client kết nối thành công.
+    console.log("Connected"); //In ra màn hình console là đã có một Socket Client kết nối thành công
+	//ở đây, socket client ở webapp sẽ có namespace là webapp 
+	//				socket client ở esp8266 sẽ có namespace là esp8266
+	socket.on('disconnect', function() {
+		console.log("Disconnect socket")
+	})
 	
-	//Gửi đi lệnh 'welcome' với một tham số là một biến JSON. Trong biến JSON này có một tham số và tham số đó tên là message. Kiểu dữ liệu của tham số là một chuối.
-    socket.emit('welcome', {
-        message: 'Connected !!!!'
-    });
 	
-	//Khi lắng nghe được lệnh "connection" với một tham số, và chúng ta đặt tên tham số là message. Mình thích gì thì mình đặt thôi.
-	//'connection' (2)
-    socket.on('connection', function(message) {
-        console.log(message);
-    });
+	socket.on("*", function(data) {
+		console.log(data);
+	});
 	
-	//khi lắng nghe được lệnh "atime" với một tham số, và chúng ta đặt tên tham số đó là data. Mình thích thì mình đặt thôi
-    socket.on('atime', function(data) {
-        sendTime();
-        console.log(data);
-    });
-	
-	socket.on('arduino', function (data) {
-	  io.sockets.emit('arduino', { message: 'R0' });
-      console.log(data);
-    });
 });
+
+//Bắt các sự kiện khi esp8266 kết nối
+esp8266_nsp.on('connection', function(socket) {
+	console.log('esp8266 connected')
+	
+	socket.on('disconnect', function() {
+		console.log("Disconnect socket esp8266")
+	})
+	
+	//nhận được bất cứ lệnh nào
+	socket.on("*", function(packet) {
+		var eventName = packet.data[0]
+		var eventJson = packet.data[1] || {} //nếu gửi thêm json thì lấy json từ lệnh gửi, không thì gửi chuỗi json rỗng, {}
+		webapp_nsp.emit(eventName, eventJson)
+	})
+})
+
+//Bắt các sự kiện khi webapp kết nối
+
+webapp_nsp.on('connection', function(socket) {
+	
+	console.log('webapp connected')
+	
+	//Khi webapp socket bị mất kết nối
+	socket.on('disconnect', function() {
+		console.log("Disconnect socket webapp")
+	})
+	
+	socket.on('*', function(packet) {
+		var eventName = packet.data[0]
+		var eventJson = packet.data[1] || {} //nếu gửi thêm json thì lấy json từ lệnh gửi, không thì gửi chuỗi json rỗng, {}
+		esp8266_nsp.emit(eventName, eventJson)
+	});
+})

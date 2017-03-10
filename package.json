@@ -4,10 +4,8 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "angular": "^1.6.2",
-    "angular-route": "^1.6.2",
-    "angular-socket-io": "^0.7.0",
-    "express": "^4.14.1"
+    "express": "^4.14.1",
+    "socket.io": "^1.7.3"
   },
   "devDependencies": {
     "ip": "^1.1.4"
